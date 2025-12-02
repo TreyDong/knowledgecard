@@ -24,8 +24,7 @@ const fetchGeminiRaw = async (
   let baseUrl = (provider.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
   
   // If the user provided a root domain like "https://yunwu.ai", we append the standard path.
-  // If they provided a full path ending in v1beta/..., we might need to adjust, 
-  // but standard practice for "Base URL" is the host or host/api prefix.
+  // If they provided a full path ending in v1beta/..., we might need to adjust.
   // We assume standard Gemini REST structure: {base}/v1beta/models/{model}:generateContent
   
   // Handle cases where user might have added /v1beta to the base url already
@@ -87,6 +86,7 @@ const generateCardHtmlGemini = async (
   // 2. Execution
   // CASE A: Custom Proxy (Base URL Present) -> Raw Fetch
   if (provider.baseUrl && provider.baseUrl.trim() !== '') {
+    // Exact official payload structure for Text Generation
     const payload = {
       contents: [{ role: 'user', parts: [{ text: promptText }] }],
       systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -135,28 +135,16 @@ const generateImageGemini = async (
 
   // CASE A: Custom Proxy (Base URL Present) -> Raw Fetch
   if (provider.baseUrl && provider.baseUrl.trim() !== '') {
-    // Note: Gemini Image models via REST API use the same generateContent endpoint structure
-    // but the parameters for image generation might vary slightly by model version.
-    // For 2.5/3 Pro, we send text prompt and expect inlineData in return.
-    
-    // We map aspect ratio to string description or specific config if supported by the proxy's model version
-    // Standard Gemini 2.5/3.0 accept imageConfig in generationConfig.
-    
+    // Exact official payload structure for Image Generation
+    // We strictly use 'generationConfig.imageConfig' as defined in official REST specs for Gemini.
     const payload = {
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
-        // "imageConfig" might not be supported by all 3rd party proxies or older versions, 
-        // but it is the official field.
-        // If the proxy fails, we might need to simplify.
+        imageConfig: {
+          aspectRatio: aspectRatio
+        }
       }
     };
-    
-    // Attempt to inject specific config
-    // @ts-ignore
-    payload.generationConfig['mediaResolution'] = 'MEDIA_RESOLUTION_UNSPECIFIED'; 
-    // @ts-ignore
-    // We try to pass aspect ratio via prompt instructions as a fallback for stability via proxies,
-    // but also attempt the config parameter.
     
     const data = await fetchGeminiRaw(provider, modelId, payload);
 
