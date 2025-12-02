@@ -48,7 +48,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       name: 'New Provider',
       type: 'custom',
       baseUrl: 'https://api.openai.com/v1',
-      // Pre-fill standard endpoints for convenience, user can edit
       chatUrl: 'https://api.openai.com/v1/chat/completions',
       imageUrl: 'https://api.openai.com/v1/images/generations',
       apiKey: '',
@@ -239,7 +238,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                            onChange={e => updateSelectedProvider({ chatUrl: e.target.value })}
                            placeholder="https://api.openai.com/v1/chat/completions"
                          />
-                         <p className="text-[10px] text-zinc-400 mt-1">Full URL including /v1/chat/completions</p>
                        </div>
                        <div>
                          <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Image Generation URL <span className="text-red-500">*</span></label>
@@ -249,20 +247,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                            onChange={e => updateSelectedProvider({ imageUrl: e.target.value })}
                            placeholder="https://api.openai.com/v1/images/generations"
                          />
-                         <p className="text-[10px] text-zinc-400 mt-1">Full URL including /v1/images/generations</p>
                        </div>
                      </div>
                   ) : (
-                    <div>
-                         <label className="block text-xs font-medium text-zinc-500 mb-1">{t('settings.baseUrl')} <span className="text-zinc-400 font-normal">(Optional Proxy)</span></label>
-                         <div className="relative">
-                            <Globe className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
-                            <input 
-                              className="w-full pl-10 px-3 py-2 bg-[#F5F5F7] dark:bg-black/20 rounded-lg text-sm text-zinc-900 dark:text-white border-none focus:ring-2 focus:ring-[#0071e3]"
-                              value={selectedProvider.baseUrl || ''}
-                              onChange={e => updateSelectedProvider({ baseUrl: e.target.value })}
-                              placeholder="https://..."
-                            />
+                    <div className="space-y-4">
+                         <div>
+                            <label className="block text-xs font-medium text-zinc-500 mb-1">{t('settings.baseUrl')}</label>
+                            <div className="relative">
+                                <Globe className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
+                                <input 
+                                  className="w-full pl-10 px-3 py-2 bg-[#F5F5F7] dark:bg-black/20 rounded-lg text-sm text-zinc-900 dark:text-white border-none focus:ring-2 focus:ring-[#0071e3]"
+                                  value={selectedProvider.baseUrl || ''}
+                                  onChange={e => updateSelectedProvider({ baseUrl: e.target.value })}
+                                  placeholder="https://generativelanguage.googleapis.com"
+                                />
+                            </div>
+                            <p className="text-[10px] text-zinc-400 mt-1.5 ml-1">
+                               Optional Proxy URL. If set, requests will be sent via raw HTTP to this address instead of using the Google SDK.
+                            </p>
                          </div>
                     </div>
                   )}
