@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import InputSection from './components/InputSection';
 import PreviewSection from './components/PreviewSection';
@@ -102,6 +103,12 @@ const App: React.FC = () => {
   const [isStyleManagerOpen, setIsStyleManagerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // 15. Image Specifics
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [imageCount, setImageCount] = useState<number>(() => {
+    return parseInt(localStorage.getItem('knowledge_card_img_count') || '1');
+  });
+
   // --- Helpers ---
   const t = useCallback((key: string): string => {
     return TRANSLATIONS[lang][key] || key;
@@ -120,6 +127,7 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem('knowledge_card_size', cardSize); }, [cardSize]);
   useEffect(() => { localStorage.setItem('knowledge_card_active_provider_id', activeProviderId); }, [activeProviderId]);
   useEffect(() => { localStorage.setItem('knowledge_card_active_model_id', activeModelId); }, [activeModelId]);
+  useEffect(() => { localStorage.setItem('knowledge_card_img_count', imageCount.toString()); }, [imageCount]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -222,7 +230,9 @@ const App: React.FC = () => {
           content,
           stylePrompt: imagePrompt,
           themeColor,
-          aspectRatio: ratio
+          aspectRatio: ratio,
+          referenceImage: referenceImage || undefined,
+          numberOfImages: imageCount
         }, provider, activeModelId);
         setGeneratedImage(result.imageUri);
       }
@@ -313,6 +323,10 @@ const App: React.FC = () => {
           setActiveProviderId={setActiveProviderId}
           activeModelId={activeModelId}
           setActiveModelId={setActiveModelId}
+          referenceImage={referenceImage}
+          setReferenceImage={setReferenceImage}
+          imageCount={imageCount}
+          setImageCount={setImageCount}
         />
       </div>
 

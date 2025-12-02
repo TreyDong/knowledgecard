@@ -1,8 +1,9 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleOption, Language, AiProvider } from '../types';
 import { THEME_COLORS } from '../constants';
-import { Wand2, Loader2, Settings2, RotateCcw, Check, Moon, Sun, Smartphone, Monitor, Square, LayoutTemplate, Image as ImageIcon, Settings, ChevronDown, ChevronUp, Languages, Sliders, Box } from 'lucide-react';
+import { Wand2, Loader2, Settings2, RotateCcw, Check, Moon, Sun, Smartphone, Monitor, Square, LayoutTemplate, Image as ImageIcon, Settings, ChevronDown, ChevronUp, Languages, Sliders, Box, Upload, X, Copy } from 'lucide-react';
 
 interface InputSectionProps {
   content: string;
@@ -36,6 +37,11 @@ interface InputSectionProps {
   setActiveProviderId: (id: string) => void;
   activeModelId: string;
   setActiveModelId: (id: string) => void;
+  // Image Props
+  referenceImage: string | null;
+  setReferenceImage: (val: string | null) => void;
+  imageCount: number;
+  setImageCount: (val: number) => void;
 }
 
 const InputSection: React.FC<InputSectionProps> = ({
@@ -68,11 +74,16 @@ const InputSection: React.FC<InputSectionProps> = ({
   activeProviderId,
   setActiveProviderId,
   activeModelId,
-  setActiveModelId
+  setActiveModelId,
+  referenceImage,
+  setReferenceImage,
+  imageCount,
+  setImageCount
 }) => {
   const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [isStyleDropdownOpen, setIsStyleDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const availableStyles = styles.filter(s => s.supportedModes.includes(mode));
   const currentStyleObj = styles.find(s => s.id === selectedStyle);
@@ -102,6 +113,21 @@ const InputSection: React.FC<InputSectionProps> = ({
   }, []);
 
   const getStyleName = (style: StyleOption) => t(`style.${style.id}.name`) !== `style.${style.id}.name` ? t(`style.${style.id}.name`) : style.name;
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReferenceImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#1c1c1e] text-zinc-900 dark:text-zinc-100 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300">
@@ -212,6 +238,45 @@ const InputSection: React.FC<InputSectionProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Image Reference Upload (Image Mode Only) */}
+      {mode === 'image' && (
+        <div className="mb-6 space-y-3">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            {t('label.refImage')}
+          </label>
+          {referenceImage ? (
+            <div className="relative group rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
+               <img src={referenceImage} alt="Reference" className="w-full h-32 object-cover opacity-80" />
+               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => setReferenceImage(null)}
+                    className="p-2 bg-white/20 hover:bg-white/40 rounded-full text-white backdrop-blur-sm transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+               </div>
+            </div>
+          ) : (
+            <div 
+              onClick={triggerFileUpload}
+              className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group"
+            >
+              <Upload className="w-6 h-6 text-zinc-400 group-hover:text-[#0071e3] mb-2 transition-colors" />
+              <p className="text-xs text-zinc-500 font-medium group-hover:text-zinc-700 dark:group-hover:text-zinc-300">
+                {t('drag.drop')}
+              </p>
+            </div>
+          )}
+          <input 
+            type="file" 
+            accept="image/*" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            className="hidden" 
+          />
+        </div>
+      )}
 
       {/* Style Dropdown */}
       <div className="mb-6 space-y-3 relative z-20" ref={dropdownRef}>
@@ -295,7 +360,7 @@ const InputSection: React.FC<InputSectionProps> = ({
         </div>
       </div>
 
-      {/* Grid Controls (Size / Radius) */}
+      {/* Grid Controls (Size / Radius / Count) */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="space-y-3">
           <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -322,7 +387,7 @@ const InputSection: React.FC<InputSectionProps> = ({
           </div>
         </div>
 
-        {mode === 'html' && (
+        {mode === 'html' ? (
           <div className="space-y-3">
             <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
               {t('label.radius')}
@@ -346,6 +411,27 @@ const InputSection: React.FC<InputSectionProps> = ({
                   </button>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+             <label className="block text-xs font-semibold uppercase tracking-wide text-zinc-500">
+               {t('label.imgCount')}
+             </label>
+             <div className="flex bg-[#F5F5F7] dark:bg-[#2c2c2e] rounded-lg p-1">
+                {[1, 2, 3, 4].map(num => (
+                   <button
+                     key={num}
+                     onClick={() => setImageCount(num)}
+                     className={`flex-1 flex items-center justify-center py-1.5 rounded text-xs font-medium transition-all ${
+                       imageCount === num 
+                       ? 'bg-white dark:bg-zinc-600 text-zinc-900 dark:text-white shadow-sm'
+                       : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                     }`}
+                   >
+                     {num}
+                   </button>
+                ))}
+             </div>
           </div>
         )}
       </div>

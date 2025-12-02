@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import { GenerateCardRequest, GenerateCardResponse, GenerateImageRequest, GenerateImageResponse, AiProvider } from "../types";
 
@@ -126,22 +127,40 @@ const generateImageGemini = async (
   provider: AiProvider,
   modelId: string
 ): Promise<GenerateImageResponse> => {
-  const { content, stylePrompt, themeColor, aspectRatio } = request;
+  const { content, stylePrompt, themeColor, aspectRatio, referenceImage, numberOfImages } = request;
 
   let prompt = `${stylePrompt}\n\nSubject/Concept to visualize: "${content}"\n`;
   if (themeColor && themeColor !== 'default') {
     prompt += `\nColor Palette Requirement: Please incorporate ${themeColor} as a dominant or accent color.`;
   }
+  if (referenceImage) {
+    prompt += `\nReference Image Provided: Use the attached image as a structural or stylistic reference.`;
+  }
+
+  // Construct Parts (Text + Optional Image)
+  const parts: any[] = [{ text: prompt }];
+  if (referenceImage) {
+    // Remove data URL prefix if present for inlineData
+    const base64Clean = referenceImage.replace(/^data:image\/\w+;base64,/, "");
+    parts.push({
+      inlineData: {
+        mimeType: "image/png", // Assuming PNG or JPEG, Gemini is flexible with inlineData mimeType label often
+        data: base64Clean
+      }
+    });
+  }
 
   // CASE A: Custom Proxy (Base URL Present) -> Raw Fetch
   if (provider.baseUrl && provider.baseUrl.trim() !== '') {
     // Exact official payload structure for Image Generation
-    // We strictly use 'generationConfig.imageConfig' as defined in official REST specs for Gemini.
     const payload = {
-      contents: [{ parts: [{ text: prompt }] }],
+      contents: [{ parts: parts }],
       generationConfig: {
         imageConfig: {
-          aspectRatio: aspectRatio
+          aspectRatio: aspectRatio,
+          // numberOfImages is not supported in GenerateContent for image generation models in standard API, 
+          // removing from raw payload as well for consistency, although proxies might behave differently.
+          // Keeping it simple to avoid errors.
         }
       }
     };
@@ -167,11 +186,15 @@ const generateImageGemini = async (
   // CASE B: Official Google API -> SDK
   else {
     const ai = getGeminiSdkClient(provider);
+    
     const response = await ai.models.generateContent({
       model: modelId,
-      contents: { parts: [{ text: prompt }] },
+      contents: { parts: parts },
       config: {
-        imageConfig: { aspectRatio: aspectRatio as "1:1" | "3:4" | "4:3" | "9:16" | "16:9" }
+        imageConfig: { 
+          aspectRatio: aspectRatio as "1:1" | "3:4" | "4:3" | "9:16" | "16:9",
+          // numberOfImages removed as it's not supported in @google/genai ImageConfig
+        }
       }
     });
 
@@ -256,7 +279,7 @@ const generateImageCustom = async (
   provider: AiProvider,
   modelId: string
 ): Promise<GenerateImageResponse> => {
-   const { content, stylePrompt, themeColor, aspectRatio } = request;
+   const { content, stylePrompt, themeColor, aspectRatio, numberOfImages } = request;
 
    let prompt = `${stylePrompt}\n\nSubject: "${content}"\n`;
    if (themeColor && themeColor !== 'default') {
@@ -273,7 +296,7 @@ const generateImageCustom = async (
    const payload = {
      model: modelId,
      prompt: prompt,
-     n: 1,
+     n: numberOfImages || 1, // Support image count
      size: size,
      response_format: "b64_json" 
    };

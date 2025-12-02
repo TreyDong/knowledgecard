@@ -1,4 +1,5 @@
 
+
 import { StyleOption, ThemeColor, Language, AiProvider } from './types';
 
 export const DEFAULT_PROVIDERS: AiProvider[] = [
@@ -76,6 +77,10 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "btn.settings": "Settings",
     "label.model": "Model",
     "label.provider": "Provider",
+    "label.refImage": "Reference Image",
+    "label.imgCount": "Count",
+    "btn.upload": "Upload Image",
+    "drag.drop": "Drag & drop or click",
 
     // Settings Modal
     "settings.title": "Settings",
@@ -139,7 +144,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "manager.new.name": "New Style",
     "manager.new.desc": "A custom style configuration.",
 
-    // Default Styles
+    // Default Style Names
     "style.apple.name": "Frosted Glass",
     "style.apple.desc": "Modern, minimalist, translucent layers.",
     "style.swiss.name": "Swiss Grid",
@@ -190,6 +195,10 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "btn.settings": "设置",
     "label.model": "模型",
     "label.provider": "服务商",
+    "label.refImage": "参考图",
+    "label.imgCount": "张数",
+    "btn.upload": "上传图片",
+    "drag.drop": "点击或拖拽上传",
 
     // Settings Modal
     "settings.title": "设置",
@@ -288,14 +297,20 @@ Your task is to generate a standalone HTML file representing a "Knowledge Card" 
 
 **3. TECHNICAL REQUIREMENTS**
 *   **Framework**: Use Tailwind CSS (via CDN).
-*   **Font**: Import 'Inter', 'Playfair Display', 'Noto Sans SC' (for Chinese), or other Google Fonts relevant to the style.
+*   **Fonts (CRITICAL)**: 
+    *   You **MUST** import fonts via Google Fonts \`<link>\` tags in the \`<head>\`.
+    *   For **Chinese characters**, you **MUST** import 'Noto Sans SC' (for sans-serif styles) or 'Noto Serif SC' (for serif styles) to ensure consistent rendering.
+    *   Example: \`<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">\`
 *   **Structure**: 
     *   \`<body>\` should have a dark background (e.g., bg-zinc-900) to contrast with the card.
     *   Assign \`id="knowledge-card"\` to the main card container.
 *   **Download Feature**:
     *   Include: \`<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>\`
     *   Add a "Download Image" button floating fixed at the bottom right of the screen (NOT inside the card).
-    *   **Script Logic**: Use \`scale: 3\` in html2canvas for high-resolution retina export.
+    *   **Script Logic**: 
+        *   Wrap the html2canvas call in \`document.fonts.ready.then(() => { ... })\` to ensure fonts are fully loaded before capturing.
+        *   Use configuration: \`{ scale: 3, useCORS: true, backgroundColor: null }\`.
+        *   Generate a high-quality PNG download.
 
 **4. OUTPUT FORMAT**
 *   Return ONLY the raw HTML string. Do not use markdown code blocks.
@@ -320,7 +335,7 @@ export const DEFAULT_STYLES: StyleOption[] = [
         *   Background: Soft mesh gradient (blue/purple/pink subtles).
         *   Card Material: White/Light Gray with high transparency (backdrop-filter: blur-2xl), thin white border.
     *   **Typography**:
-        *   Font: 'Inter', system-ui.
+        *   Font: 'Inter', 'Noto Sans SC' (Chinese), system-ui.
         *   Colors: Dark text (slate-800) on light glass.
     `,
     imagePrompt: `Minimalist abstract 3D composition. Glassmorphism style, frosted glass geometric shapes, soft pastel gradients, clean lines, high-end product design aesthetic, 8k resolution, soft studio lighting, cinematic depth of field.`
@@ -343,7 +358,7 @@ export const DEFAULT_STYLES: StyleOption[] = [
         *   Card: White or Off-white, flat, no shadow.
         *   Decor: Thick horizontal or vertical black lines (\`border-t-4 border-black\`).
     *   **Typography**:
-        *   Font: 'Helvetica', 'Arial Black', sans-serif (font-black).
+        *   Font: 'Helvetica', 'Noto Sans SC' (Chinese), sans-serif (font-black).
         *   Style: Tight tracking, huge scale contrast.
     `,
     imagePrompt: `Swiss International Style graphic design poster. Bold typography, asymmetric grid layout, high contrast, solid flat colors, minimalism, bauhaus influence, geometric shapes, clean vector style.`
@@ -365,7 +380,7 @@ export const DEFAULT_STYLES: StyleOption[] = [
         *   Colors: Cream, Coffee, Burnt Orange.
         *   Border: Double lines or ornate corners.
     *   **Typography**:
-        *   Font: 'Merriweather', 'Playfair Display', serif.
+        *   Font: 'Merriweather', 'Playfair Display', 'Noto Serif SC' (Chinese), serif.
         *   Style: Elegant, readable, high line-height.
     `,
     imagePrompt: `Vintage editorial illustration. Grainy paper texture, warm earth tones (orange, cream, brown), retro 70s aesthetic, serif typography elements, visual noise, nostalgic atmosphere, faded colors, classic book cover style.`
@@ -386,7 +401,7 @@ export const DEFAULT_STYLES: StyleOption[] = [
         *   Card: Black with neon borders.
         *   Effects: Scanlines overlay (CSS), glitch text effects.
     *   **Typography**:
-        *   Font: 'JetBrains Mono', monospace.
+        *   Font: 'JetBrains Mono', 'Noto Sans SC' (Chinese), monospace.
         *   Colors: Neon Green, Cyan, or Hot Pink on Black.
     `,
     imagePrompt: `Cyberpunk city aesthetic. Neon lights, futuristic tech elements, glitch effects, dark background with vibrant cyan and magenta highlights, wet streets reflecting neon, high contrast, cinematic atmosphere, 8k resolution.`

@@ -61,6 +61,8 @@ export interface GenerateImageRequest {
   stylePrompt: string; // Full style instruction
   themeColor?: string;
   aspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
+  referenceImage?: string; // Base64 string
+  numberOfImages?: number;
 }
 
 export interface GenerateImageResponse {
