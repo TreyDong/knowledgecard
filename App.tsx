@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import InputSection from './components/InputSection';
 import PreviewSection from './components/PreviewSection';
@@ -134,6 +133,15 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkKey = async () => {
       try {
+        // 1. Check for injected environment variable (Netlify/Build)
+        // We use a safe check in case process is mocked or missing props
+        if (process && process.env && process.env.API_KEY) {
+          setHasApiKey(true);
+          setIsCheckingKey(false);
+          return;
+        }
+
+        // 2. Check for AI Studio Key Selection
         if ((window as any).aistudio && (window as any).aistudio.hasSelectedApiKey) {
           const hasKey = await (window as any).aistudio.hasSelectedApiKey();
           setHasApiKey(hasKey);
@@ -182,7 +190,7 @@ const App: React.FC = () => {
         console.error("Failed to open key selector", e);
       }
     } else {
-      alert("AI Studio environment not detected.");
+      alert("AI Studio environment not detected. If deploying to Netlify, please configure the API_KEY environment variable or use the 'Custom' provider settings.");
     }
   };
 

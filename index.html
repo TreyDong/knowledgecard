@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Transform your notes into stunning, shareable HTML knowledge cards using AI-powered design templates." />
     <title>Knowledge Card Generator</title>
+    <!-- Polyfill for process.env to prevent crashes on Netlify/Browser environments -->
+    <script>
+      window.process = window.process || { env: { NODE_ENV: 'production' } };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
