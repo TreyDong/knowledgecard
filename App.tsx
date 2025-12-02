@@ -190,7 +190,9 @@ const App: React.FC = () => {
         console.error("Failed to open key selector", e);
       }
     } else {
-      alert("AI Studio environment not detected. If deploying to Netlify, please configure the API_KEY environment variable or use the 'Custom' provider settings.");
+      // Fallback for Netlify/Standard Web Environment
+      // Open settings to let user configure Custom Provider if no environment key is found
+      setIsSettingsOpen(true);
     }
   };
 

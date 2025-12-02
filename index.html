@@ -7,7 +7,11 @@
     <title>Knowledge Card Generator</title>
     <!-- Polyfill for process.env to prevent crashes on Netlify/Browser environments -->
     <script>
-      window.process = window.process || { env: { NODE_ENV: 'production' } };
+      window.process = window.process || { env: {} };
+      // Ensure env exists even if process was defined elsewhere
+      if (!window.process.env) window.process.env = {};
+      // Default to production to suppress dev warnings
+      window.process.env.NODE_ENV = window.process.env.NODE_ENV || 'production';
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
