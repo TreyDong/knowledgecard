@@ -2,6 +2,40 @@
 import { GoogleGenAI } from "@google/genai";
 import { GenerateCardRequest, GenerateCardResponse, GenerateImageRequest, GenerateImageResponse, AiProvider } from "../types";
 
+// --- Helper: Gemini Client Factory ---
+
+const getGeminiClient = (provider: AiProvider) => {
+  const apiKey = provider.apiKey || process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key is required for Google Gemini.");
+
+  const options: any = { apiKey };
+
+  // If a custom Base URL is provided (e.g., a proxy), we use a custom fetch handler
+  // to intercept the request and rewrite the domain. This is more reliable than
+  // relying on the SDK's internal baseUrl handling which can be inconsistent.
+  if (provider.baseUrl) {
+    const customBase = provider.baseUrl.replace(/\/+$/, '');
+    
+    options.fetch = (url: RequestInfo | URL, init?: RequestInit) => {
+      let urlStr = typeof url === 'string' ? url : 
+                   url instanceof URL ? url.toString() : 
+                   (url as any).url || String(url);
+      
+      const target = 'https://generativelanguage.googleapis.com';
+      
+      // Only rewrite if it targets the official API
+      if (urlStr && urlStr.includes(target)) {
+        const newUrl = urlStr.replace(target, customBase);
+        return fetch(newUrl, init);
+      }
+      
+      return fetch(urlStr, init);
+    };
+  }
+
+  return new GoogleGenAI(options);
+};
+
 // --- Gemini Specific Implementations ---
 
 const generateCardHtmlGemini = async (
@@ -9,18 +43,7 @@ const generateCardHtmlGemini = async (
   provider: AiProvider,
   modelId: string
 ): Promise<GenerateCardResponse> => {
-  // Support API Key override from provider settings
-  const apiKey = provider.apiKey || process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is required for Google Gemini.");
-
-  const options: any = { apiKey };
-  
-  // Support Base URL override for official Google endpoint (e.g. for proxies)
-  if (provider.baseUrl) {
-    options.baseUrl = provider.baseUrl;
-  }
-  
-  const ai = new GoogleGenAI(options);
+  const ai = getGeminiClient(provider);
   const { content, systemInstruction, themeColor, appTheme, cornerRadius, cardSize } = request;
 
   let promptText = `Here is the content for the knowledge card:\n\n${content}`;
@@ -57,14 +80,7 @@ const generateImageGemini = async (
   provider: AiProvider,
   modelId: string
 ): Promise<GenerateImageResponse> => {
-  const apiKey = provider.apiKey || process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is required for Google Gemini.");
-
-  const options: any = { apiKey };
-  if (provider.baseUrl) {
-    options.baseUrl = provider.baseUrl;
-  }
-  const ai = new GoogleGenAI(options);
+  const ai = getGeminiClient(provider);
   const { content, stylePrompt, themeColor, aspectRatio } = request;
 
   let prompt = `${stylePrompt}\n\nSubject/Concept to visualize: "${content}"\n`;
