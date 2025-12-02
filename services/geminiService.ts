@@ -10,27 +10,12 @@ const getGeminiClient = (provider: AiProvider) => {
 
   const options: any = { apiKey };
 
-  // If a custom Base URL is provided (e.g., a proxy), we use a custom fetch handler
-  // to intercept the request and rewrite the domain. This is more reliable than
-  // relying on the SDK's internal baseUrl handling which can be inconsistent.
+  // FIX: Pass baseUrl directly to the SDK configuration.
+  // The SDK uses this to override the default https://generativelanguage.googleapis.com
+  // We strip trailing slashes to ensure cleaner path concatenation by the SDK.
   if (provider.baseUrl) {
-    const customBase = provider.baseUrl.replace(/\/+$/, '');
-    
-    options.fetch = (url: RequestInfo | URL, init?: RequestInit) => {
-      let urlStr = typeof url === 'string' ? url : 
-                   url instanceof URL ? url.toString() : 
-                   (url as any).url || String(url);
-      
-      const target = 'https://generativelanguage.googleapis.com';
-      
-      // Only rewrite if it targets the official API
-      if (urlStr && urlStr.includes(target)) {
-        const newUrl = urlStr.replace(target, customBase);
-        return fetch(newUrl, init);
-      }
-      
-      return fetch(urlStr, init);
-    };
+    const cleanBaseUrl = provider.baseUrl.replace(/\/+$/, '');
+    options.baseUrl = cleanBaseUrl;
   }
 
   return new GoogleGenAI(options);
