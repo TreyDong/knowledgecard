@@ -240,7 +240,17 @@ const generateImageCustom = async (
       throw new Error("No image data returned from custom provider.");
    }
 
-   return { imageUri: `data:image/png;base64,${b64}` };
+   // Robust Base64 Handling
+   // 1. If it already starts with 'data:', use it as is.
+   if (typeof b64 === 'string' && b64.trim().startsWith('data:')) {
+      return { imageUri: b64 };
+   }
+
+   // 2. Otherwise, assume it's raw base64. Detect MIME type if possible (JPEG starts with /9j/)
+   const isJpeg = typeof b64 === 'string' && b64.trim().startsWith('/9j/');
+   const mimeType = isJpeg ? 'image/jpeg' : 'image/png';
+
+   return { imageUri: `data:${mimeType};base64,${b64}` };
 };
 
 
