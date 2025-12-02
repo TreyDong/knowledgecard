@@ -1,14 +1,26 @@
 
 export type Language = 'en' | 'zh';
 
-export type AiProvider = 'gemini' | 'custom';
+export type ProviderType = 'gemini' | 'custom';
 
-export interface AiConfig {
-  provider: AiProvider;
-  baseUrl: string;
+export interface AiModel {
+  id: string;
+  name: string;
+}
+
+export interface AiProvider {
+  id: string;
+  name: string;
+  type: ProviderType;
   apiKey: string;
-  chatModel: string;
-  imageModel?: string;
+  baseUrl?: string; // Optional base override
+  
+  // Custom Provider Specifics (Full URLs preferred)
+  chatUrl?: string; 
+  imageUrl?: string;
+  
+  chatModels: AiModel[];
+  imageModels: AiModel[];
 }
 
 export interface StyleOption {

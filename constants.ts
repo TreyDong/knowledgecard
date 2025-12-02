@@ -1,13 +1,38 @@
 
-import { StyleOption, ThemeColor, Language, AiConfig } from './types';
+import { StyleOption, ThemeColor, Language, AiProvider } from './types';
 
-export const DEFAULT_AI_CONFIG: AiConfig = {
-  provider: 'gemini',
-  baseUrl: '',
-  apiKey: '',
-  chatModel: 'gpt-4o',
-  imageModel: 'dall-e-3'
-};
+export const DEFAULT_PROVIDERS: AiProvider[] = [
+  {
+    id: 'google-official',
+    name: 'Google Gemini',
+    type: 'gemini',
+    apiKey: '', // Will fall back to process.env
+    baseUrl: '',
+    chatModels: [
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+      { id: 'gemini-3-pro-preview', name: 'Gemini 3.0 Pro' },
+    ],
+    imageModels: [
+      { id: 'gemini-2.5-flash-image', name: 'Gemini 2.5 Flash Image' },
+      { id: 'gemini-3-pro-image-preview', name: 'Gemini 3.0 Pro Image' }
+    ]
+  },
+  {
+    id: 'openai-compatible',
+    name: 'Custom / OpenAI',
+    type: 'custom',
+    apiKey: '',
+    baseUrl: 'https://api.openai.com/v1',
+    chatUrl: 'https://api.openai.com/v1/chat/completions',
+    imageUrl: 'https://api.openai.com/v1/images/generations',
+    chatModels: [
+      { id: 'gpt-4o', name: 'GPT-4o' }
+    ],
+    imageModels: [
+      { id: 'dall-e-3', name: 'DALL-E 3' }
+    ]
+  }
+];
 
 export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   en: {
@@ -17,11 +42,11 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "theme.toggle": "Toggle Theme",
     "lang.toggle": "Switch Language",
     
-    // Welcome / API Key Screen
+    // Welcome
     "welcome.title": "Welcome to Knowledge Card",
     "welcome.subtitle": "Create stunning visual assets with Gemini 3 Pro.",
-    "welcome.requireKey": "This application uses advanced generative models (Gemini 3 Pro & Image Preview) which require a valid Google Cloud Project API key with billing enabled.",
-    "welcome.btn.connect": "Connect API Key",
+    "welcome.requireKey": "This application uses advanced generative models which require a valid API key.",
+    "welcome.btn.connect": "Configure API Key",
     "welcome.billing": "Learn about billing requirements",
 
     // Input Section
@@ -48,31 +73,41 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "btn.confirm": "Confirm",
     "btn.cancel": "Cancel",
     "btn.reconnect": "Change API Key",
-    "btn.settings": "Model Settings",
+    "btn.settings": "Settings",
+    "label.model": "Model",
+    "label.provider": "Provider",
 
     // Settings Modal
-    "settings.title": "AI Model Settings",
-    "settings.provider": "Provider",
-    "settings.gemini": "Google Gemini (Default)",
-    "settings.custom": "OpenAI Compatible / Custom",
+    "settings.title": "Settings",
+    "settings.subtitle": "Configure providers and models.",
+    "settings.providers": "Providers",
+    "settings.addProvider": "Add Provider",
+    "settings.general": "General Config",
+    "settings.name": "Provider Name",
+    "settings.type": "Type",
     "settings.baseUrl": "Base URL",
     "settings.apiKey": "API Key",
-    "settings.chatModel": "Chat Model",
-    "settings.imageModel": "Image Model (Optional)",
-    "settings.save": "Save Configuration",
-    "settings.cancel": "Cancel",
+    "settings.chatUrl": "Chat Endpoint URL",
+    "settings.imageUrl": "Image Endpoint URL",
+    "settings.models": "Models",
+    "settings.chatModels": "Chat Models",
+    "settings.imageModels": "Image Models",
+    "settings.addModel": "Add Model ID",
+    "settings.save": "Save Changes",
+    "settings.cancel": "Close",
+    "settings.deleteProvider": "Delete Provider",
+    "settings.confirmDelete": "Delete this provider?",
+    "settings.gemini": "Google Gemini",
+    "settings.custom": "Custom / OpenAI",
     "settings.placeholder.url": "e.g. https://api.openai.com/v1",
-    "settings.placeholder.key": "sk-...",
-    "settings.placeholder.chat": "e.g. gpt-4o, deepseek-chat",
-    "settings.placeholder.image": "e.g. dall-e-3",
-    "settings.desc": "Configure custom API endpoints for other providers (OpenAI, DeepSeek, etc).",
+    "settings.placeholder.fullUrl": "e.g. https://api.example.com/v1/chat/completions",
 
     // Error Handling
-    "error.customProvider": "Provider Error",
-    "error.checkSettings": "Would you like to open Settings to check your Model Name or API Key?",
-    "error.accessDenied": "Access denied. Your API key may not support this model. Would you like to select a different key?",
+    "error.provider": "Provider Error",
+    "error.checkSettings": "Please check your settings.",
+    "error.accessDenied": "Access denied. Check API Key.",
 
-    // Preview Section
+    // Preview
     "preview.loading": "Generating...",
     "preview.loading.desc": "Designing your asset...",
     "preview.empty.title": "Ready to Create",
@@ -104,7 +139,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "manager.new.name": "New Style",
     "manager.new.desc": "A custom style configuration.",
 
-    // Default Style Names/Descriptions (for localization mapping)
+    // Default Styles
     "style.apple.name": "Frosted Glass",
     "style.apple.desc": "Modern, minimalist, translucent layers.",
     "style.swiss.name": "Swiss Grid",
@@ -121,11 +156,11 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "theme.toggle": "切换主题",
     "lang.toggle": "切换语言",
 
-    // Welcome / API Key Screen
+    // Welcome
     "welcome.title": "欢迎使用知识卡片",
     "welcome.subtitle": "使用 Gemini 3 Pro 创建精美素材。",
-    "welcome.requireKey": "本应用使用高级生成模型（Gemini 3 Pro 和 Image Preview），需要连接已启用计费的 Google Cloud 项目 API 密钥。",
-    "welcome.btn.connect": "连接 API 密钥",
+    "welcome.requireKey": "本应用使用高级生成模型，需要配置有效的 API 密钥。",
+    "welcome.btn.connect": "配置 API 密钥",
     "welcome.billing": "了解计费要求",
     
     // Input Section
@@ -152,31 +187,41 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "btn.confirm": "确认",
     "btn.cancel": "取消",
     "btn.reconnect": "更换 API 密钥",
-    "btn.settings": "模型设置",
+    "btn.settings": "设置",
+    "label.model": "模型",
+    "label.provider": "服务商",
 
     // Settings Modal
-    "settings.title": "AI 模型设置",
-    "settings.provider": "供应商",
-    "settings.gemini": "Google Gemini (默认)",
-    "settings.custom": "OpenAI 兼容 / 自定义",
-    "settings.baseUrl": "API 地址 (Base URL)",
-    "settings.apiKey": "API 密钥",
-    "settings.chatModel": "对话模型名称",
-    "settings.imageModel": "绘图模型名称 (可选)",
-    "settings.save": "保存配置",
-    "settings.cancel": "取消",
+    "settings.title": "设置",
+    "settings.subtitle": "配置模型服务商。",
+    "settings.providers": "服务商列表",
+    "settings.addProvider": "添加服务商",
+    "settings.general": "通用配置",
+    "settings.name": "名称",
+    "settings.type": "类型",
+    "settings.baseUrl": "Base URL",
+    "settings.apiKey": "API Key",
+    "settings.chatUrl": "聊天接口 (URL)",
+    "settings.imageUrl": "绘图接口 (URL)",
+    "settings.models": "模型列表",
+    "settings.chatModels": "对话模型",
+    "settings.imageModels": "绘图模型",
+    "settings.addModel": "添加模型 ID",
+    "settings.save": "保存更改",
+    "settings.cancel": "关闭",
+    "settings.deleteProvider": "删除服务商",
+    "settings.confirmDelete": "确定删除？",
+    "settings.gemini": "Google Gemini",
+    "settings.custom": "Custom / OpenAI",
     "settings.placeholder.url": "例如 https://api.openai.com/v1",
-    "settings.placeholder.key": "sk-...",
-    "settings.placeholder.chat": "例如 gpt-4o, deepseek-chat",
-    "settings.placeholder.image": "例如 dall-e-3",
-    "settings.desc": "配置其他供应商（如 OpenAI, DeepSeek 等）的自定义 API。",
+    "settings.placeholder.fullUrl": "完整链接，例如 .../v1/chat/completions",
 
     // Error Handling
-    "error.customProvider": "供应商返回错误",
-    "error.checkSettings": "是否打开设置检查模型名称或 API 密钥？",
-    "error.accessDenied": "访问被拒绝。您的 API 密钥可能不支持此模型。是否选择其他密钥？",
+    "error.provider": "服务商返回错误",
+    "error.checkSettings": "请检查设置。",
+    "error.accessDenied": "访问被拒绝，请检查 API Key。",
 
-    // Preview Section
+    // Preview
     "preview.loading": "正在生成...",
     "preview.loading.desc": "AI 正在设计您的素材",
     "preview.empty.title": "准备就绪",
@@ -208,7 +253,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     "manager.new.name": "新建风格",
     "manager.new.desc": "自定义风格配置。",
 
-    // Default Style Names/Descriptions
+    // Default Style Names
     "style.apple.name": "磨砂玻璃",
     "style.apple.desc": "现代、极简、半透明层叠效果。",
     "style.swiss.name": "瑞士网格",
@@ -262,7 +307,7 @@ export const DEFAULT_STYLES: StyleOption[] = [
     name: 'Frosted Glass',
     description: 'Modern, minimalist, translucent layers.',
     icon: '✨',
-    gradient: 'bg-zinc-100', // Cleaner background for icon
+    gradient: 'bg-zinc-100',
     supportedModes: ['html', 'image'],
     htmlPrompt: `
     ${BASE_SYSTEM_PROMPT}
@@ -350,11 +395,11 @@ export const DEFAULT_STYLES: StyleOption[] = [
 
 export const THEME_COLORS: ThemeColor[] = [
   { id: 'default', name: 'Original', value: 'default', class: 'bg-gradient-to-br from-zinc-200 to-zinc-400' },
-  { id: 'blue', name: 'Azure', value: '#0071e3', class: 'bg-[#0071e3]' }, // Apple Blue
-  { id: 'purple', name: 'Iris', value: '#5e5ce6', class: 'bg-[#5e5ce6]' }, // Apple Purple
-  { id: 'pink', name: 'Rose', value: '#ff2d55', class: 'bg-[#ff2d55]' }, // Apple Pink
-  { id: 'orange', name: 'Sunset', value: '#ff9500', class: 'bg-[#ff9500]' }, // Apple Orange
-  { id: 'green', name: 'Sage', value: '#34c759', class: 'bg-[#34c759]' }, // Apple Green
-  { id: 'slate', name: 'Graphite', value: '#8e8e93', class: 'bg-[#8e8e93]' }, // Apple Gray
-  { id: 'red', name: 'Ruby', value: '#ff3b30', class: 'bg-[#ff3b30]' }, // Apple Red
+  { id: 'blue', name: 'Azure', value: '#0071e3', class: 'bg-[#0071e3]' },
+  { id: 'purple', name: 'Iris', value: '#5e5ce6', class: 'bg-[#5e5ce6]' },
+  { id: 'pink', name: 'Rose', value: '#ff2d55', class: 'bg-[#ff2d55]' },
+  { id: 'orange', name: 'Sunset', value: '#ff9500', class: 'bg-[#ff9500]' },
+  { id: 'green', name: 'Sage', value: '#34c759', class: 'bg-[#34c759]' },
+  { id: 'slate', name: 'Graphite', value: '#8e8e93', class: 'bg-[#8e8e93]' },
+  { id: 'red', name: 'Ruby', value: '#ff3b30', class: 'bg-[#ff3b30]' },
 ];

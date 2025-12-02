@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import InputSection from './components/InputSection';
 import PreviewSection from './components/PreviewSection';
 import StyleManager from './components/StyleManager';
 import SettingsModal from './components/SettingsModal';
-import { StyleOption, Language, AiConfig } from './types';
+import { StyleOption, Language, AiProvider } from './types';
 import { generateCardHtml, generateImage } from './services/geminiService';
-import { DEFAULT_STYLES, TRANSLATIONS, DEFAULT_AI_CONFIG } from './constants';
-import { Sparkles, Key } from 'lucide-react';
+import { DEFAULT_STYLES, TRANSLATIONS, DEFAULT_PROVIDERS } from './constants';
 
 const App: React.FC = () => {
   // --- State Initialization with LocalStorage Persistence ---
@@ -30,19 +30,15 @@ const App: React.FC = () => {
     return DEFAULT_STYLES;
   });
 
-  // 3. AI Config (New)
-  const [aiConfig, setAiConfig] = useState<AiConfig>(() => {
-    const saved = localStorage.getItem('knowledge_card_ai_config');
+  // 3. Providers (New)
+  const [providers, setProviders] = useState<AiProvider[]>(() => {
+    const saved = localStorage.getItem('knowledge_card_providers');
     if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Ensure merged defaults for backward compatibility
-        return { ...DEFAULT_AI_CONFIG, ...parsed };
-      } catch (e) {
-        console.error("Failed to parse ai config", e);
-      }
+       try {
+         return JSON.parse(saved);
+       } catch (e) {}
     }
-    return DEFAULT_AI_CONFIG;
+    return DEFAULT_PROVIDERS;
   });
 
   // 4. Mode
@@ -50,41 +46,50 @@ const App: React.FC = () => {
     return (localStorage.getItem('knowledge_card_mode') as 'html' | 'image') || 'html';
   });
 
-  // 5. Content
+  // 5. Active Provider & Model
+  const [activeProviderId, setActiveProviderId] = useState<string>(() => {
+    return localStorage.getItem('knowledge_card_active_provider_id') || 'google-official';
+  });
+
+  const [activeModelId, setActiveModelId] = useState<string>(() => {
+    return localStorage.getItem('knowledge_card_active_model_id') || 'gemini-3-pro-preview';
+  });
+
+  // 6. Content
   const [content, setContent] = useState<string>(() => {
     return localStorage.getItem('knowledge_card_content') || '';
   });
 
-  // 6. Selected Style ID
+  // 7. Selected Style ID
   const [selectedStyleId, setSelectedStyleId] = useState<string>(() => {
     return localStorage.getItem('knowledge_card_selected_style_id') || 'apple';
   });
 
-  // 7. Theme Color
+  // 8. Theme Color
   const [themeColor, setThemeColor] = useState<string>(() => {
     return localStorage.getItem('knowledge_card_theme_color') || 'default';
   });
 
-  // 8. Corner Radius
+  // 9. Corner Radius
   const [cornerRadius, setCornerRadius] = useState<string>(() => {
     return localStorage.getItem('knowledge_card_corner_radius') || 'rounded-2xl';
   });
 
-  // 9. Card Size
+  // 10. Card Size
   const [cardSize, setCardSize] = useState<string>(() => {
     return localStorage.getItem('knowledge_card_size') || 'standard';
   });
 
-  // 10. Active Prompts
+  // 11. Prompts
   const [htmlPrompt, setHtmlPrompt] = useState<string>('');
   const [imagePrompt, setImagePrompt] = useState<string>('');
 
-  // 11. Output Data
+  // 12. Output
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 12. App Theme
+  // 13. Theme
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') {
       if (localStorage.getItem('theme') === 'light') return 'light';
@@ -93,13 +98,9 @@ const App: React.FC = () => {
     return 'dark';
   });
 
-  // 13. Modals
+  // 14. Modals
   const [isStyleManagerOpen, setIsStyleManagerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-  // 14. API Key State (Only strictly required if Provider is Gemini)
-  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
-  const [isCheckingKey, setIsCheckingKey] = useState<boolean>(true);
 
   // --- Helpers ---
   const t = useCallback((key: string): string => {
@@ -110,13 +111,15 @@ const App: React.FC = () => {
 
   useEffect(() => { localStorage.setItem('knowledge_card_lang', lang); }, [lang]);
   useEffect(() => { localStorage.setItem('knowledge_card_styles_config', JSON.stringify(styles)); }, [styles]);
-  useEffect(() => { localStorage.setItem('knowledge_card_ai_config', JSON.stringify(aiConfig)); }, [aiConfig]);
+  useEffect(() => { localStorage.setItem('knowledge_card_providers', JSON.stringify(providers)); }, [providers]);
   useEffect(() => { localStorage.setItem('knowledge_card_mode', mode); }, [mode]);
   useEffect(() => { localStorage.setItem('knowledge_card_content', content); }, [content]);
   useEffect(() => { localStorage.setItem('knowledge_card_selected_style_id', selectedStyleId); }, [selectedStyleId]);
   useEffect(() => { localStorage.setItem('knowledge_card_theme_color', themeColor); }, [themeColor]);
   useEffect(() => { localStorage.setItem('knowledge_card_corner_radius', cornerRadius); }, [cornerRadius]);
   useEffect(() => { localStorage.setItem('knowledge_card_size', cardSize); }, [cardSize]);
+  useEffect(() => { localStorage.setItem('knowledge_card_active_provider_id', activeProviderId); }, [activeProviderId]);
+  useEffect(() => { localStorage.setItem('knowledge_card_active_model_id', activeModelId); }, [activeModelId]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -129,36 +132,7 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
-  // Check API Key on Mount
-  useEffect(() => {
-    const checkKey = async () => {
-      try {
-        // 1. Check for injected environment variable (Netlify/Build)
-        // We use a safe check in case process is mocked or missing props
-        if (process && process.env && process.env.API_KEY) {
-          setHasApiKey(true);
-          setIsCheckingKey(false);
-          return;
-        }
-
-        // 2. Check for AI Studio Key Selection
-        if ((window as any).aistudio && (window as any).aistudio.hasSelectedApiKey) {
-          const hasKey = await (window as any).aistudio.hasSelectedApiKey();
-          setHasApiKey(hasKey);
-        } else {
-          setHasApiKey(false); 
-        }
-      } catch (e) {
-        console.error("Error checking API key:", e);
-        setHasApiKey(false);
-      } finally {
-        setIsCheckingKey(false);
-      }
-    };
-    checkKey();
-  }, []);
-
-  // Handle Prompt Initialization & Updates when Style Changes
+  // Handle Prompt Initialization
   useEffect(() => {
     const currentStyle = styles.find(s => s.id === selectedStyleId) || styles[0];
     if (currentStyle) {
@@ -167,7 +141,7 @@ const App: React.FC = () => {
     }
   }, [selectedStyleId, styles]);
 
-  // Ensure selected style is valid for current mode
+  // Ensure selected style is valid
   useEffect(() => {
     const currentStyle = styles.find(s => s.id === selectedStyleId);
     if (!currentStyle || !currentStyle.supportedModes.includes(mode)) {
@@ -180,21 +154,6 @@ const App: React.FC = () => {
 
 
   // --- Handlers ---
-
-  const handleConnectKey = async () => {
-    if ((window as any).aistudio && (window as any).aistudio.openSelectKey) {
-      try {
-        await (window as any).aistudio.openSelectKey();
-        setHasApiKey(true);
-      } catch (e) {
-        console.error("Failed to open key selector", e);
-      }
-    } else {
-      // Fallback for Netlify/Standard Web Environment
-      // Open settings to let user configure Custom Provider if no environment key is found
-      setIsSettingsOpen(true);
-    }
-  };
 
   const handleSaveStyle = (style: StyleOption) => {
     setStyles(prev => {
@@ -226,12 +185,24 @@ const App: React.FC = () => {
     setSelectedStyleId(DEFAULT_STYLES[0].id);
   };
 
+  const handleUpdateProviders = (newProviders: AiProvider[]) => {
+    setProviders(newProviders);
+    // Ensure active provider still exists
+    if (!newProviders.find(p => p.id === activeProviderId)) {
+      setActiveProviderId(newProviders[0]?.id || '');
+    }
+  };
+
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGeneratedHtml(null); 
     setGeneratedImage(null);
 
+    const provider = providers.find(p => p.id === activeProviderId);
+
     try {
+      if (!provider) throw new Error("No provider selected");
+      
       if (mode === 'html') {
         const result = await generateCardHtml({
           content,
@@ -240,7 +211,7 @@ const App: React.FC = () => {
           appTheme: theme,
           cornerRadius,
           cardSize
-        }, aiConfig);
+        }, provider, activeModelId);
         setGeneratedHtml(result.html);
       } else {
         let ratio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9' = '1:1';
@@ -252,32 +223,18 @@ const App: React.FC = () => {
           stylePrompt: imagePrompt,
           themeColor,
           aspectRatio: ratio
-        }, aiConfig);
+        }, provider, activeModelId);
         setGeneratedImage(result.imageUri);
       }
     } catch (error: any) {
       console.error(error);
       const msg = error.message || String(error);
-
-      // 1. Custom Provider Errors (e.g. Model not supported, 401, 404)
-      if (aiConfig.provider === 'custom') {
-         const confirmMsg = `${t('error.customProvider')}\n\n${msg}\n\n${t('error.checkSettings')}`;
-         if (window.confirm(confirmMsg)) {
-            setIsSettingsOpen(true);
-         }
-         return;
-      }
+      const confirmMsg = `${t('error.provider')}\n\n${msg}\n\n${t('error.checkSettings')}`;
       
-      // 2. Gemini Permission Errors
-      if (aiConfig.provider === 'gemini' && (msg.includes('403') || msg.includes('permission') || msg.includes('not found'))) {
-        if (window.confirm(t('error.accessDenied'))) {
-           handleConnectKey();
-        }
-        return;
-      }
-
-      // 3. Generic Error
-      alert(`Generation failed: ${msg}`);
+      // Sandbox fix: window.confirm is blocked. 
+      // We log the error clearly and open settings automatically to help the user.
+      console.warn(confirmMsg);
+      setIsSettingsOpen(true);
       
     } finally {
       setIsGenerating(false);
@@ -301,71 +258,6 @@ const App: React.FC = () => {
     else setImagePrompt(val);
   };
 
-  // --- Render Loading / Login Screen ---
-  if (isCheckingKey) {
-    return <div className="flex h-screen w-screen items-center justify-center bg-[#F5F5F7] dark:bg-black"></div>;
-  }
-
-  // Allow bypass if using custom provider
-  if (!hasApiKey && aiConfig.provider === 'gemini') {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[#F5F5F7] dark:bg-black p-4 font-sans text-zinc-900 dark:text-zinc-100">
-        <div className="max-w-md w-full bg-white dark:bg-[#1c1c1e] rounded-3xl shadow-2xl p-8 border border-zinc-200 dark:border-zinc-800 text-center space-y-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
-             <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold mb-2">{t('welcome.title')}</h1>
-            <p className="text-zinc-500 font-medium">{t('welcome.subtitle')}</p>
-          </div>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
-            {t('welcome.requireKey')}
-          </p>
-          <button
-            onClick={handleConnectKey}
-            className="w-full py-3.5 rounded-full bg-[#0071e3] hover:bg-[#0077ED] text-white font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-blue-500/30"
-          >
-            <Key className="w-4 h-4" />
-            {t('welcome.btn.connect')}
-          </button>
-          
-          <div className="relative flex py-2 items-center">
-             <div className="flex-grow border-t border-zinc-200 dark:border-zinc-700"></div>
-             <span className="flex-shrink-0 mx-4 text-zinc-400 text-xs">OR</span>
-             <div className="flex-grow border-t border-zinc-200 dark:border-zinc-700"></div>
-          </div>
-          
-          <button
-             onClick={() => setIsSettingsOpen(true)}
-             className="w-full py-3 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all"
-          >
-             {t('settings.custom')}
-          </button>
-
-          <div className="text-xs text-zinc-400 hover:text-blue-500 transition-colors mt-4">
-            <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer">
-              {t('welcome.billing')}
-            </a>
-          </div>
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-             <button onClick={() => setLang(lang === 'en' ? 'zh' : 'en')} className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
-                {t('lang.toggle')}
-             </button>
-          </div>
-          
-          <SettingsModal 
-            isOpen={isSettingsOpen}
-            onClose={() => setIsSettingsOpen(false)}
-            config={aiConfig}
-            onSave={setAiConfig}
-            t={t}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // --- Render Main App ---
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F5F5F7] dark:bg-black font-sans selection:bg-blue-100 selection:text-blue-900">
       
@@ -382,8 +274,8 @@ const App: React.FC = () => {
       <SettingsModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        config={aiConfig}
-        onSave={setAiConfig}
+        providers={providers}
+        onUpdateProviders={handleUpdateProviders}
         t={t}
       />
 
@@ -415,6 +307,12 @@ const App: React.FC = () => {
           onOpenStyleManager={() => setIsStyleManagerOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
           t={t}
+          // New Props
+          providers={providers}
+          activeProviderId={activeProviderId}
+          setActiveProviderId={setActiveProviderId}
+          activeModelId={activeModelId}
+          setActiveModelId={setActiveModelId}
         />
       </div>
 

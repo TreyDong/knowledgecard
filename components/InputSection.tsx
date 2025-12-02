@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleOption, Language } from '../types';
+import { StyleOption, Language, AiProvider } from '../types';
 import { THEME_COLORS } from '../constants';
-import { Wand2, Loader2, Settings2, RotateCcw, Check, Moon, Sun, Smartphone, Monitor, Square, LayoutTemplate, Image as ImageIcon, Settings, ChevronDown, ChevronUp, Languages, Sliders } from 'lucide-react';
+import { Wand2, Loader2, Settings2, RotateCcw, Check, Moon, Sun, Smartphone, Monitor, Square, LayoutTemplate, Image as ImageIcon, Settings, ChevronDown, ChevronUp, Languages, Sliders, Box } from 'lucide-react';
 
 interface InputSectionProps {
   content: string;
@@ -30,6 +30,12 @@ interface InputSectionProps {
   onOpenStyleManager: () => void;
   onOpenSettings: () => void;
   t: (key: string) => string;
+  // Provider Props
+  providers: AiProvider[];
+  activeProviderId: string;
+  setActiveProviderId: (id: string) => void;
+  activeModelId: string;
+  setActiveModelId: (id: string) => void;
 }
 
 const InputSection: React.FC<InputSectionProps> = ({
@@ -57,7 +63,12 @@ const InputSection: React.FC<InputSectionProps> = ({
   styles,
   onOpenStyleManager,
   onOpenSettings,
-  t
+  t,
+  providers,
+  activeProviderId,
+  setActiveProviderId,
+  activeModelId,
+  setActiveModelId
 }) => {
   const [showPromptEditor, setShowPromptEditor] = useState(false);
   const [isStyleDropdownOpen, setIsStyleDropdownOpen] = useState(false);
@@ -65,6 +76,20 @@ const InputSection: React.FC<InputSectionProps> = ({
 
   const availableStyles = styles.filter(s => s.supportedModes.includes(mode));
   const currentStyleObj = styles.find(s => s.id === selectedStyle);
+
+  // Derive available models based on selected provider and mode
+  const activeProvider = providers.find(p => p.id === activeProviderId) || providers[0];
+  const availableModels = activeProvider ? (mode === 'html' ? activeProvider.chatModels : activeProvider.imageModels) : [];
+
+  // Ensure active model is valid when switching providers/modes
+  useEffect(() => {
+    if (availableModels.length > 0) {
+      const exists = availableModels.find(m => m.id === activeModelId);
+      if (!exists) {
+        setActiveModelId(availableModels[0].id);
+      }
+    }
+  }, [activeProviderId, mode, availableModels, activeModelId, setActiveModelId]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -82,36 +107,70 @@ const InputSection: React.FC<InputSectionProps> = ({
     <div className="flex flex-col h-full bg-white dark:bg-[#1c1c1e] text-zinc-900 dark:text-zinc-100 p-8 overflow-y-auto custom-scrollbar transition-colors duration-300">
       
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
+          <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">
             {t('app.title')}
           </h1>
-          <p className="text-zinc-500 text-sm mt-1 font-medium">
+          <p className="text-zinc-500 text-xs mt-1 font-medium">
             {t('app.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
            <button
             onClick={toggleLang}
-            className="px-3 py-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-xs font-semibold flex items-center gap-2"
+            className="px-2 py-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors text-[10px] font-semibold flex items-center gap-1"
             title={t('lang.toggle')}
           >
-            <Languages className="w-4 h-4" />
-            {lang === 'en' ? 'EN' : '中文'}
+            <Languages className="w-3 h-3" />
+            {lang === 'en' ? 'EN' : 'CN'}
           </button>
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+            className="p-1.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
             title={t('theme.toggle')}
           >
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
 
-      {/* Mode Switcher (Segmented Control) */}
-      <div className="mb-8 bg-[#F5F5F7] dark:bg-zinc-800 p-1 rounded-lg flex relative">
+      {/* Provider / Model Selection Row */}
+      <div className="mb-6 grid grid-cols-2 gap-3">
+         <div>
+            <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wide mb-1.5">{t('label.provider')}</label>
+            <div className="relative">
+               <select
+                  value={activeProviderId}
+                  onChange={(e) => setActiveProviderId(e.target.value)}
+                  className="w-full appearance-none bg-[#F5F5F7] dark:bg-[#2c2c2e] text-xs font-medium px-3 py-2 rounded-lg border-none focus:ring-1 focus:ring-[#0071e3] text-zinc-700 dark:text-zinc-200"
+               >
+                  {providers.map(p => (
+                     <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+               </select>
+               <Settings className="absolute right-3 top-2.5 w-3 h-3 text-zinc-400 pointer-events-none" />
+            </div>
+         </div>
+         <div>
+            <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wide mb-1.5">{t('label.model')}</label>
+            <div className="relative">
+               <select
+                  value={activeModelId}
+                  onChange={(e) => setActiveModelId(e.target.value)}
+                  className="w-full appearance-none bg-[#F5F5F7] dark:bg-[#2c2c2e] text-xs font-medium px-3 py-2 rounded-lg border-none focus:ring-1 focus:ring-[#0071e3] text-zinc-700 dark:text-zinc-200"
+               >
+                  {availableModels.map(m => (
+                     <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+               </select>
+               <Box className="absolute right-3 top-2.5 w-3 h-3 text-zinc-400 pointer-events-none" />
+            </div>
+         </div>
+      </div>
+
+      {/* Mode Switcher */}
+      <div className="mb-6 bg-[#F5F5F7] dark:bg-zinc-800 p-1 rounded-lg flex relative">
         <div 
           className="absolute h-[calc(100%-8px)] w-[calc(50%-4px)] bg-white dark:bg-[#2c2c2e] rounded shadow-sm transition-all duration-300 ease-out top-1"
           style={{ left: mode === 'html' ? '4px' : 'calc(50% + 0px)' }}
